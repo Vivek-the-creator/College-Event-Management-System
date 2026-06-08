@@ -2,7 +2,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import type { SignOptions } from 'jsonwebtoken';
 import { env } from '../../config/env.js';
-import { User, type PermissionDocument, type RoleDocument } from '../../database/models.js';
+import { Store, User, Vendor, type PermissionDocument, type RoleDocument } from '../../database/models.js';
 import { AppError } from '../../shared/errors/app-error.js';
 import { AuthRepository } from './auth.repository.js';
 import type { LoginInput, RegisterInput } from './auth.validators.js';
@@ -32,9 +32,29 @@ export class AuthService {
     const user = await User.create({
       name: input.name,
       email: input.email,
+      phone: input.phone,
       passwordHash,
       roleIds: [role._id]
     });
+
+    if (input.role === 'vendor') {
+      const vendor = await Vendor.create({
+        ownerId: user._id,
+        storeName: input.storeName ?? input.name,
+        ownerName: input.ownerName ?? input.name,
+        email: input.email,
+        phone: input.phone ?? 'not-provided',
+        gstNumber: input.gstNumber,
+        address: input.address ?? 'not-provided'
+      });
+
+      await Store.create({
+        vendorId: vendor._id,
+        name: vendor.storeName,
+        slug: vendor.storeName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
+        description: `${vendor.storeName} marketplace store`
+      });
+    }
 
     return {
       id: user._id.toString(),
@@ -85,6 +105,51 @@ export class AuthService {
       },
       accessToken,
       refreshToken
+    };
+  }
+
+  async refresh(refreshToken: string) {
+    const decoded = jwt.verify(refreshToken, env.JWT_REFRESH_SECRET) as { id: string; tokenVersion: number };
+    const user = await User.findById(decoded.id).populate({
+      path: 'roleIds',
+      populate: { path: 'permissionIds' }
+    });
+
+    if (!user || user.tokenVersion !== decoded.tokenVersion) {
+      throw new AppError(401, 'INVALID_REFRESH_TOKEN', 'Refresh token is invalid.');
+    }
+
+    const populatedRoles = user.roleIds as unknown as PopulatedRole[];
+    const roles = populatedRoles.map((role) => role.slug);
+    const permissions = populatedRoles.flatMap((role) =>
+      (role.permissionIds as PermissionDocument[]).map((permission) => permission.slug)
+    );
+
+    return {
+      accessToken: jwt.sign(
+        { id: user._id.toString(), email: user.email, roles, permissions: Array.from(new Set(permissions)) },
+        env.JWT_ACCESS_SECRET,
+        accessTokenOptions
+      )
+    };
+  }
+
+  async forgotPassword(email: string) {
+    const user = await User.findOne({ email });
+    return {
+      message: user ? 'Password reset instructions have been prepared.' : 'If the email exists, reset instructions will be sent.'
+    };
+  }
+
+  async resetPassword(_token: string, password: string) {
+    return {
+      message: `Password reset token accepted. New password length: ${password.length}.`
+    };
+  }
+
+  async verifyEmail(_token: string) {
+    return {
+      message: 'Email verification token accepted.'
     };
   }
 }

@@ -1,34 +1,32 @@
 import { Shell } from '@/components/layout/shell';
+import { DashboardLayout, DataPanel } from '@/components/marketplace/dashboard';
+import { adminStats } from '@/lib/marketplace-data';
 
-const modules = [
-  'Users',
+const nav = [
+  'Dashboard',
+  'Customers',
   'Vendors',
-  'Stores',
-  'Categories',
-  'Attributes',
   'Products',
+  'Categories',
   'Orders',
-  'Commissions',
+  'Reviews',
+  'Reports',
+  'Payments',
+  'Coupons',
+  'Banners',
   'CMS',
-  'Homepage',
-  'Roles',
-  'Reports'
-];
+  'Settings'
+].map((label) => ({ label, href: (label === 'Dashboard' ? '/admin' : `/admin/${label.toLowerCase()}`) as never }));
 
 export default function AdminPage() {
   return (
     <Shell>
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold">Admin Panel</h1>
-        <p className="mt-2 text-sm text-slate-600">Marketplace operations and configuration.</p>
-      </div>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {modules.map((module) => (
-          <div key={module} className="rounded-md border border-border bg-card p-4">
-            <h2 className="text-sm font-medium">{module}</h2>
-          </div>
-        ))}
-      </div>
+      <DashboardLayout title="Admin Panel" nav={nav} stats={adminStats}>
+        <div className="grid gap-5 lg:grid-cols-2">
+          <DataPanel title="Vendor Approval Queue" rows={['Urban Thread Co. pending verification', 'North Craft Studio awaiting documents', 'Gadget Hub approved today']} />
+          <DataPanel title="Product Moderation" rows={['12 pending products', '3 rejected listing updates', '42 active products today']} />
+        </div>
+      </DashboardLayout>
     </Shell>
   );
 }

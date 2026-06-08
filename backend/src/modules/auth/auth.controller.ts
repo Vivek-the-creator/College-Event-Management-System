@@ -23,3 +23,36 @@ export const login: RequestHandler = async (req, res, next) => {
 export const me: RequestHandler = (req, res) => {
   sendSuccess(res, req.user);
 };
+
+export const refresh: RequestHandler = async (req, res, next) => {
+  try {
+    const refreshToken = req.body.refreshToken ?? req.cookies?.refreshToken;
+    sendSuccess(res, await authService.refresh(refreshToken));
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const forgotPassword: RequestHandler = async (req, res, next) => {
+  try {
+    sendSuccess(res, await authService.forgotPassword(req.body.email));
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const resetPassword: RequestHandler = async (req, res, next) => {
+  try {
+    sendSuccess(res, await authService.resetPassword(req.body.token, req.body.password));
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const verifyEmail: RequestHandler = async (req, res, next) => {
+  try {
+    sendSuccess(res, await authService.verifyEmail(req.body.token));
+  } catch (error) {
+    next(error);
+  }
+};
