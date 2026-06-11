@@ -62,3 +62,5 @@ Change this immediately after first login in any real environment.
 The backend is organized by clean architecture boundaries: routes, controllers, validators, services, repositories, middleware, config, database, and shared utilities. The frontend uses Next.js App Router with route areas for storefront, admin, vendor, and account experiences.
 
 All configurable business concepts should be stored in MongoDB Atlas and exposed through admin workflows. Default seed data is allowed only as editable initial configuration.
+
+Hello
