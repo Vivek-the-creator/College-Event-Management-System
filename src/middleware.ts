@@ -1,9 +1,24 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
-export function middleware() {
+const PUBLIC_PATHS = ['/login'];
+
+export function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  const session = request.cookies.get('campus_session');
+
+  const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
+
+  if (!session && !isPublic && !pathname.startsWith('/api')) {
+    return NextResponse.redirect(new URL('/login', request.url));
+  }
+
+  if (session && pathname === '/login') {
+    return NextResponse.redirect(new URL('/dashboard', request.url));
+  }
+
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: [],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
 };

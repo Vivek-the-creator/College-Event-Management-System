@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { verifyUser } from '@/lib/mock-store';
+import { prisma } from '@/lib/prisma';
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -9,11 +9,15 @@ export async function GET(request: Request) {
     return NextResponse.json({ message: 'Invalid verification link' }, { status: 400 });
   }
 
-  const user = await verifyUser(token);
+  const user = await prisma.user.findFirst({ where: { verificationToken: token } });
   if (!user) {
     return NextResponse.json({ message: 'Invalid or expired token' }, { status: 404 });
   }
 
-  const redirectUrl = new URL('/auth?verified=true', request.url);
-  return NextResponse.redirect(redirectUrl);
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { emailVerified: true, verificationToken: null },
+  });
+
+  return NextResponse.redirect(new URL('/auth?verified=true', request.url));
 }

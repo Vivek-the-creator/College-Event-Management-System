@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { auth } from '@/auth';
-import { createProposal, getAllProposals } from '@/lib/mock-store';
+import { prisma } from '@/lib/prisma';
 
 const proposalSchema = z.object({
   title: z.string().min(3),
@@ -16,7 +16,24 @@ const proposalSchema = z.object({
 });
 
 export async function GET() {
-  return NextResponse.json({ proposals: getAllProposals() });
+  const proposals = await prisma.eventProposal.findMany({
+    orderBy: { createdAt: 'desc' },
+    include: {
+      author: { select: { name: true } },
+      _count: { select: { votes: true } },
+    },
+  });
+
+  const formatted = proposals.map((p) => ({
+    ...p,
+    authorName: p.author.name,
+    voteCount: p._count.votes,
+    startDate: p.startDate.toISOString(),
+    endDate: p.endDate.toISOString(),
+    createdAt: p.createdAt.toISOString(),
+  }));
+
+  return NextResponse.json({ proposals: formatted });
 }
 
 export async function POST(request: Request) {
@@ -28,14 +45,38 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const parsed = proposalSchema.parse(body);
-    const proposal = createProposal({
-      ...parsed,
-      authorId: session.user.id,
-      authorName: session.user.name || 'Guest',
-      attachments: [],
+
+    const proposal = await prisma.eventProposal.create({
+      data: {
+        title: parsed.title,
+        description: parsed.description,
+        category: parsed.category,
+        expectedAudience: parsed.expectedAudience,
+        budget: parsed.budget,
+        startDate: new Date(parsed.startDate),
+        endDate: new Date(parsed.endDate),
+        venue: parsed.venue,
+        status: parsed.status as any,
+        authorId: session.user.id,
+        attachments: [],
+      },
+      include: {
+        author: { select: { name: true } },
+        _count: { select: { votes: true } },
+      },
     });
-    return NextResponse.json({ proposal });
-  } catch (error) {
+
+    return NextResponse.json({
+      proposal: {
+        ...proposal,
+        authorName: proposal.author.name,
+        voteCount: proposal._count.votes,
+        startDate: proposal.startDate.toISOString(),
+        endDate: proposal.endDate.toISOString(),
+        createdAt: proposal.createdAt.toISOString(),
+      },
+    });
+  } catch {
     return NextResponse.json({ message: 'Invalid proposal payload' }, { status: 400 });
   }
 }

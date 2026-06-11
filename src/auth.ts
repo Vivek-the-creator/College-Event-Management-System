@@ -1,6 +1,6 @@
 import { cookies } from 'next/headers';
 import { compare } from 'bcryptjs';
-import { findUserByEmail } from '@/lib/mock-store';
+import { prisma } from '@/lib/prisma';
 
 export interface SessionUser {
   id: string;
@@ -15,33 +15,15 @@ export interface Session {
 
 const SESSION_COOKIE = 'campus_session';
 
-export interface VerificationNeeded {
-  needsVerification: true;
-  email: string;
-}
+export async function signIn(credentials: { email: string; password: string }): Promise<Session | null> {
+  const user = await prisma.user.findUnique({ where: { email: credentials.email } });
+  if (!user) return null;
 
-export async function signIn(credentials: { email: string; password: string }): Promise<Session | VerificationNeeded | null> {
-  const user = await findUserByEmail(credentials.email);
-  if (!user) {
-    return null;
-  }
+  const valid = await compare(credentials.password, user.passwordHash);
+  if (!valid) return null;
 
-  const valid = await compare(credentials.password, user.passwordHash || '');
-  if (!valid) {
-    return null;
-  }
-
-  if (!user.emailVerified) {
-    return { needsVerification: true, email: user.email };
-  }
-
-  const session = {
-    user: {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-    },
+  const session: Session = {
+    user: { id: user.id, name: user.name, email: user.email, role: user.role },
   };
 
   const cookieStore = await cookies();
@@ -60,13 +42,10 @@ export async function signOut() {
   cookieStore.delete(SESSION_COOKIE);
 }
 
-export async function auth() {
+export async function auth(): Promise<Session | null> {
   const cookieStore = await cookies();
   const value = cookieStore.get(SESSION_COOKIE)?.value;
-  if (!value) {
-    return null;
-  }
-
+  if (!value) return null;
   try {
     return JSON.parse(value) as Session;
   } catch {
