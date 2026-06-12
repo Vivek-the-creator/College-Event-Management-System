@@ -2,6 +2,7 @@
 
 import { Bell, Check } from 'lucide-react';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
 interface Notification {
@@ -10,21 +11,43 @@ interface Notification {
   message: string;
   isRead: boolean;
   createdAt: string;
+  proposalId?: string | null;
 }
 
 interface Props {
   notifications: Notification[];
+  role?: string;
 }
 
-export function NotificationBell({ notifications: initial }: Props) {
+export function NotificationBell({ notifications: initial, role }: Props) {
   const [notifications, setNotifications] = useState(initial);
   const [open, setOpen] = useState(false);
+  const router = useRouter();
   const unread = notifications.filter((n) => !n.isRead).length;
 
   async function markAllRead() {
     await fetch('/api/engagement/notifications', { method: 'PATCH' });
     setNotifications((n) => n.map((notif) => ({ ...notif, isRead: true })));
     toast.success('All marked as read');
+  }
+
+  async function handleClick(n: Notification) {
+    if (!n.isRead) {
+      await fetch('/api/engagement/notifications', { method: 'PATCH' });
+      setNotifications((prev) => prev.map((notif) => notif.id === n.id ? { ...notif, isRead: true } : notif));
+    }
+    setOpen(false);
+
+    // Faculty pending review notifications → go to Review Events
+    if (role === 'FACULTY' && (n.title.toLowerCase().includes('proposal') || n.title.toLowerCase().includes('review'))) {
+      router.push('/faculty/pending-events');
+      return;
+    }
+    // Rating request notification → go to rate page
+    if (n.title.toLowerCase().includes('rate') && n.proposalId) {
+      router.push(`/proposals/${n.proposalId}`);
+      return;
+    }
   }
 
   return (
@@ -56,11 +79,15 @@ export function NotificationBell({ notifications: initial }: Props) {
               <p className="py-6 text-center text-sm text-slate-600">No notifications</p>
             ) : (
               notifications.map((n) => (
-                <div key={n.id} className={`border-b border-white/5 px-4 py-3 last:border-0 ${n.isRead ? 'opacity-50' : ''}`}>
+                <button
+                  key={n.id}
+                  onClick={() => handleClick(n)}
+                  className={`w-full border-b border-white/5 px-4 py-3 text-left last:border-0 transition-colors hover:bg-white/5 ${n.isRead ? 'opacity-50' : ''}`}
+                >
                   <p className="text-xs font-semibold text-slate-200">{n.title}</p>
                   <p className="mt-0.5 text-xs text-slate-400">{n.message}</p>
                   <p className="mt-1 text-xs text-slate-600">{new Date(n.createdAt).toLocaleDateString()}</p>
-                </div>
+                </button>
               ))
             )}
           </div>

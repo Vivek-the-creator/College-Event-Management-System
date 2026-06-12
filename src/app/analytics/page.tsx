@@ -73,35 +73,48 @@ export default async function AnalyticsPage() {
   }
   const statusData = Object.entries(statusMap).map(([name, value]) => ({ name, value }));
 
-  // ── Recent proposals list (real) ──────────────────────────────────
-  const recentProposals = await prisma.eventProposal.findMany({
-    orderBy: { createdAt: 'desc' },
-    take: 8,
-    include: {
-      author: { select: { name: true } },
-      _count: { select: { votes: true, comments: true } },
-    },
-  });
+// ── Recent proposals list (real) ──────────────────────────────────
+   const recentProposals = await prisma.eventProposal.findMany({
+     orderBy: { createdAt: 'desc' },
+     take: 8,
+     select: {
+       id: true,
+       title: true,
+       category: true,
+       status: true,
+       createdAt: true,
+       authorId: true,
+       _count: { select: { votes: true, comments: true } },
+     },
+   });
 
-  const totalFunding = fundingAgg._sum.amount ?? 0;
+   // Fetch author names separately
+   const authorIds = [...new Set(recentProposals.map(p => p.authorId))];
+   const authors = await prisma.user.findMany({
+     where: { id: { in: authorIds } },
+     select: { id: true, name: true },
+   });
+   const authorMap = Object.fromEntries(authors.map(a => [a.id, a.name]));
 
-  const kpis = [
-    { title: 'Total Proposals', value: totalProposals, icon: FileText, gradient: 'from-blue-500 to-cyan-500' },
-    { title: 'Total Users', value: totalUsers, icon: Users, gradient: 'from-violet-500 to-indigo-500' },
-    { title: 'Funds Raised', value: `$${totalFunding.toLocaleString()}`, icon: DollarSign, gradient: 'from-emerald-500 to-teal-500' },
-    { title: 'Total Votes', value: totalVotes, icon: TrendingUp, gradient: 'from-pink-500 to-rose-500' },
-  ];
+   const totalFunding = fundingAgg._sum.amount ?? 0;
 
-  const recentList = recentProposals.map((p) => ({
-    id: p.id,
-    title: p.title,
-    category: p.category,
-    status: p.status,
-    authorName: p.author.name,
-    votes: p._count.votes,
-    comments: p._count.comments,
-    createdAt: p.createdAt.toISOString(),
-  }));
+   const kpis = [
+     { title: 'Total Proposals', value: totalProposals, icon: FileText, gradient: 'from-blue-500 to-cyan-500' },
+     { title: 'Total Users', value: totalUsers, icon: Users, gradient: 'from-violet-500 to-indigo-500' },
+     { title: 'Funds Raised', value: `$${totalFunding.toLocaleString()}`, icon: DollarSign, gradient: 'from-emerald-500 to-teal-500' },
+     { title: 'Total Votes', value: totalVotes, icon: TrendingUp, gradient: 'from-pink-500 to-rose-500' },
+   ];
+
+   const recentList = recentProposals.map((p) => ({
+     id: p.id,
+     title: p.title,
+     category: p.category,
+     status: p.status,
+     authorName: authorMap[p.authorId] ?? 'Unknown',
+     votes: p._count.votes,
+     comments: p._count.comments,
+     createdAt: p.createdAt.toISOString(),
+   }));
 
   return (
     <div className="animate-fade-in p-8">
@@ -180,11 +193,10 @@ export default async function AnalyticsPage() {
 
 function statusBadge(status: string) {
   const map: Record<string, string> = {
-    DRAFT: 'bg-slate-500/20 text-slate-400',
-    SUBMITTED: 'bg-blue-500/20 text-blue-400',
-    FACULTY_REVIEW: 'bg-amber-500/20 text-amber-400',
-    APPROVED: 'bg-emerald-500/20 text-emerald-400',
-    PUBLISHED: 'bg-cyan-500/20 text-cyan-400',
+    PENDING_FACULTY_APPROVAL: 'bg-amber-500/20 text-amber-400',
+    PENDING_ADMIN_APPROVAL: 'bg-blue-500/20 text-blue-400',
+    ACCEPTED: 'bg-emerald-500/20 text-emerald-400',
+    REJECTED: 'bg-red-500/20 text-red-400',
     COMPLETED: 'bg-slate-400/20 text-slate-300',
   };
   return map[status] ?? 'bg-slate-500/20 text-slate-400';

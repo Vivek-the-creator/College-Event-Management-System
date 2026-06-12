@@ -21,7 +21,7 @@ export async function GET() {
   ]);
 
   const total = allEvents.length;
-  const accepted = allEvents.filter((e) => ['APPROVED', 'PUBLISHED', 'COMPLETED'].includes(e.status)).length;
+  const accepted = allEvents.filter((e) => ['ACCEPTED', 'COMPLETED'].includes(e.status)).length;
   const rejected = allEvents.filter((e) => e.status === 'REJECTED').length;
   const completed = allEvents.filter((e) => e.status === 'COMPLETED').length;
 

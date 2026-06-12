@@ -16,11 +16,10 @@ const tooltipStyle = {
 const axisStyle = { fontSize: 11, fill: '#64748B' };
 
 const STATUS_COLORS: Record<string, string> = {
-  DRAFT: '#64748B',
-  SUBMITTED: '#3B82F6',
-  FACULTY_REVIEW: '#F59E0B',
-  APPROVED: '#10B981',
-  PUBLISHED: '#06B6D4',
+  PENDING_FACULTY_APPROVAL: '#F59E0B',
+  PENDING_ADMIN_APPROVAL: '#3B82F6',
+  ACCEPTED: '#10B981',
+  REJECTED: '#EF4444',
   COMPLETED: '#94A3B8',
 };
 

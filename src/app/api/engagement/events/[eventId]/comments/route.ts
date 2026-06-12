@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 
-const COMMENTABLE_STATUSES = ['PENDING', 'SUBMITTED', 'FACULTY_REVIEW', 'APPROVED', 'PUBLISHED', 'COMPLETED'];
+const COMMENTABLE_STATUSES = ['PENDING_FACULTY_APPROVAL', 'PENDING_ADMIN_APPROVAL', 'ACCEPTED', 'COMPLETED'];
 
 export async function POST(request: Request, { params }: { params: Promise<{ eventId: string }> }) {
   const session = await auth();

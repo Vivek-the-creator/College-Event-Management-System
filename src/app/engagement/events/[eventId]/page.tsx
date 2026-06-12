@@ -35,11 +35,11 @@ export default async function EventEngagementPage({ params }: { params: Promise<
     }),
   ]);
 
-  const votableStatuses = ['PENDING', 'SUBMITTED', 'FACULTY_REVIEW', 'APPROVED', 'PUBLISHED'];
+  const votableStatuses = ['PENDING_FACULTY_APPROVAL', 'PENDING_ADMIN_APPROVAL', 'ACCEPTED'];
   const commentableStatuses = [...votableStatuses, 'COMPLETED'];
   const canVote = votableStatuses.includes(event.status);
   const canComment = commentableStatuses.includes(event.status);
-  const canVolunteer = session.user.role === 'STUDENT' && (event.status === 'APPROVED' || event.status === 'PUBLISHED');
+  const canVolunteer = session.user.role === 'STUDENT' && event.status === 'ACCEPTED';
 
   const formattedComments = comments.map((c) => ({
     id: c.id,
@@ -81,7 +81,7 @@ export default async function EventEngagementPage({ params }: { params: Promise<
         <div className="mt-4 flex gap-4 text-xs text-slate-500">
           <span className="flex items-center gap-1"><ThumbsUp className="h-3.5 w-3.5" />{event._count.votes} votes</span>
           <span className="flex items-center gap-1"><MessageSquare className="h-3.5 w-3.5" />{event._count.comments} comments</span>
-          <span className={`rounded-full px-2.5 py-0.5 font-medium ${event.status === 'APPROVED' || event.status === 'PUBLISHED' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-500/20 text-slate-400'}`}>
+          <span className={`rounded-full px-2.5 py-0.5 font-medium ${event.status === 'ACCEPTED' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-500/20 text-slate-400'}`}>
             {event.status}
           </span>
         </div>

@@ -23,7 +23,7 @@ export default async function StudentAnalyticsPage() {
     PointsService.getUserHistory(userId),
   ]);
 
-  const accepted = proposals.filter((p) => ['APPROVED', 'PUBLISHED', 'COMPLETED'].includes(p.status)).length;
+  const accepted = proposals.filter((p) => ['ACCEPTED', 'COMPLETED'].includes(p.status)).length;
   const rejected = proposals.filter((p) => p.status === 'REJECTED').length;
   const votesReceived = proposals.reduce((s, p) => s + p._count.votes, 0);
 
@@ -101,7 +101,7 @@ export default async function StudentAnalyticsPage() {
                   <p className="text-xs text-slate-500">{p._count.votes} votes · {new Date(p.createdAt).toLocaleDateString()}</p>
                 </div>
                 <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                  p.status === 'APPROVED' || p.status === 'PUBLISHED' ? 'bg-emerald-500/20 text-emerald-400' :
+                  p.status === 'ACCEPTED' || p.status === 'COMPLETED' ? 'bg-emerald-500/20 text-emerald-400' :
                   p.status === 'REJECTED' ? 'bg-red-500/20 text-red-400' : 'bg-slate-500/20 text-slate-400'
                 }`}>{p.status}</span>
               </div>

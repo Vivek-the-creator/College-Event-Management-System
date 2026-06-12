@@ -1,35 +1,76 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
-import { Calendar } from 'lucide-react';
+import { Calendar, Loader2 } from 'lucide-react';
+import { useSession } from '@/lib/auth-client';
+import { toast } from 'sonner';
+import type { CalendarEvent } from '@/types';
 
-const events = [
-  { title: 'AI Hackathon', start: '2026-09-16', end: '2026-09-17', backgroundColor: '#3B82F6', borderColor: '#3B82F6' },
-  { title: 'Cultural Night', start: '2026-10-02', backgroundColor: '#EC4899', borderColor: '#EC4899' },
-  { title: 'Tech Seminar', start: '2026-10-10T10:00:00', backgroundColor: '#10B981', borderColor: '#10B981' },
-  { title: 'Sports Day', start: '2026-10-18', backgroundColor: '#F97316', borderColor: '#F97316' },
-  { title: 'Workshop: UI/UX', start: '2026-10-25T14:00:00', backgroundColor: '#8B5CF6', borderColor: '#8B5CF6' },
-];
+const roleColors: Record<string, string> = {
+  PARTICIPANT: '#3B82F6',
+  PROPOSER: '#EC4899',
+  VOLUNTEER: '#10B981',
+  MENTOR: '#F97316',
+};
 
 export default function CalendarPage() {
+  const router = useRouter();
+  const { data: session } = useSession();
+  const [events, setEvents] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!session) {
+      router.push('/login');
+      return;
+    }
+
+    fetch('/api/calendar')
+      .then((r) => r.json())
+      .then((data) => {
+        const formatted = (data.events || []).map((e: CalendarEvent) => ({
+          id: e.eventId,
+          title: `${e.roleType}: ${e.title}`,
+          start: e.start,
+          end: e.end,
+          backgroundColor: roleColors[e.roleType] || '#3B82F6',
+          borderColor: roleColors[e.roleType] || '#3B82F6',
+        }));
+        setEvents(formatted);
+        setLoading(false);
+      })
+      .catch(() => {
+        toast.error('Failed to load calendar');
+        setLoading(false);
+      });
+  }, [session, router]);
+
+  if (loading) {
+    return (
+      <div className="flex h-full items-center justify-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-400" />
+      </div>
+    );
+  }
+
   return (
     <div className="animate-fade-in p-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-white">Campus Calendar</h1>
-        <p className="mt-1 text-sm text-slate-500">View approved and upcoming events across the semester.</p>
+        <h1 className="text-2xl font-bold text-white">My Calendar</h1>
+        <p className="mt-1 text-sm text-slate-500">View your upcoming events and registrations.</p>
       </div>
 
-      {/* Legend */}
       <div className="mb-6 flex flex-wrap gap-3">
         {[
-          { label: 'Hackathon', color: '#3B82F6' },
-          { label: 'Cultural', color: '#EC4899' },
-          { label: 'Academic', color: '#10B981' },
-          { label: 'Sports', color: '#F97316' },
-          { label: 'Workshop', color: '#8B5CF6' },
+          { label: 'Participant', color: roleColors.PARTICIPANT },
+          { label: 'Proposer', color: roleColors.PROPOSER },
+          { label: 'Volunteer', color: roleColors.VOLUNTEER },
+          { label: 'Mentor', color: roleColors.MENTOR },
         ].map((item) => (
           <div key={item.label} className="flex items-center gap-2 rounded-full border border-white/5 bg-slate-900/60 px-3 py-1.5">
             <div className="h-2 w-2 rounded-full" style={{ backgroundColor: item.color }} />

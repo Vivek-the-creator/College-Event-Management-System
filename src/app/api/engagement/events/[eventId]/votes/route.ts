@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { PointsService } from '@/lib/engagement/points.service';
 import { NotificationService } from '@/lib/engagement/notification.service';
 
-const VOTABLE_STATUSES = ['PENDING', 'SUBMITTED', 'FACULTY_REVIEW', 'APPROVED', 'PUBLISHED'];
+const VOTABLE_STATUSES = ['PENDING_FACULTY_APPROVAL', 'PENDING_ADMIN_APPROVAL', 'ACCEPTED'];
 
 export async function POST(_: Request, { params }: { params: Promise<{ eventId: string }> }) {
   const session = await auth();

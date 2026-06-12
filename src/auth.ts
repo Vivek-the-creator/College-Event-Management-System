@@ -12,6 +12,11 @@ export interface SessionUser {
   section?: string | null;
   employeeId?: string | null;
   department?: string | null;
+  profileImage?: string | null;
+  points?: number;
+  createdEventsCount?: number;
+  registeredEventsCount?: number;
+  mentoredEventsCount?: number;
 }
 
 export interface Session {
@@ -34,6 +39,11 @@ export async function signIn(credentials: { email: string; password: string }): 
       section: true,
       employeeId: true,
       department: true,
+      profileImage: true,
+      points: true,
+      createdEventsCount: true,
+      registeredEventsCount: true,
+      mentoredEventsCount: true,
     },
   });
   if (!user) return null;

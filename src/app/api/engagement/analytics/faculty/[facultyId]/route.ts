@@ -23,7 +23,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ facultyId:
     PointsService.getUserTotalPoints(facultyId),
   ]);
 
-  const accepted = proposals.filter((p) => ['APPROVED', 'PUBLISHED', 'COMPLETED'].includes(p.status));
+  const accepted = proposals.filter((p) => ['ACCEPTED', 'COMPLETED'].includes(p.status));
   const completed = proposals.filter((p) => p.status === 'COMPLETED');
 
   return NextResponse.json({

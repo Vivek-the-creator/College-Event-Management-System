@@ -30,7 +30,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ userId: st
 
   return NextResponse.json({
     totalEventsProposed: proposals.length,
-    acceptedEvents: proposals.filter((p) => ['APPROVED', 'PUBLISHED', 'COMPLETED'].includes(p.status)).length,
+    acceptedEvents: proposals.filter((p) => ['ACCEPTED', 'COMPLETED'].includes(p.status)).length,
     rejectedEvents: proposals.filter((p) => p.status === 'REJECTED').length,
     votesReceived: proposals.reduce((s, p) => s + p._count.votes, 0),
     votesCast: votes,

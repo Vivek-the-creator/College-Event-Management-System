@@ -15,7 +15,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ eve
 
   const event = await prisma.eventProposal.findUnique({ where: { id: eventId }, select: { status: true } });
   if (!event) return NextResponse.json({ message: 'Event not found' }, { status: 404 });
-  if (event.status !== 'APPROVED' && event.status !== 'PUBLISHED') {
+  if (event.status !== 'ACCEPTED') {
     return NextResponse.json({ message: 'Volunteering is only open for accepted events' }, { status: 403 });
   }
 

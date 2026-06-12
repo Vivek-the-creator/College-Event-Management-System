@@ -8,8 +8,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const proposal = await prisma.eventProposal.findUnique({
     where: { id },
     include: {
-      author: { select: { name: true } },
-      _count: { select: { votes: true } },
+      author: { select: { name: true, department: true } },
+      mentorFaculty: { select: { name: true, department: true } },
+      _count: { select: { votes: true, registrations: true } },
       comments: {
         orderBy: { createdAt: 'asc' },
         include: { user: { select: { name: true, role: true } } },
@@ -48,7 +49,10 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     proposal: {
       ...proposal,
       authorName: proposal.author.name,
+      authorDepartment: proposal.author.department,
+      mentorFacultyName: proposal.mentorFaculty?.name,
       voteCount: proposal._count.votes,
+      registrationCount: proposal._count.registrations,
       startDate: proposal.startDate.toISOString(),
       endDate: proposal.endDate.toISOString(),
       createdAt: proposal.createdAt.toISOString(),
@@ -101,4 +105,30 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       createdAt: updated.createdAt.toISOString(),
     },
   });
+}
+
+export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const session = await auth();
+  if (!session?.user) {
+    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+  }
+
+  const { id } = await params;
+  const proposal = await prisma.eventProposal.findUnique({
+    where: { id },
+    select: { id: true, authorId: true },
+  });
+
+  if (!proposal) {
+    return NextResponse.json({ message: 'Not found' }, { status: 404 });
+  }
+
+  const canDelete = session.user.role === 'ADMIN' || proposal.authorId === session.user.id;
+  if (!canDelete) {
+    return NextResponse.json({ message: 'Only admins and the event creator can delete this event' }, { status: 403 });
+  }
+
+  await prisma.eventProposal.delete({ where: { id } });
+
+  return NextResponse.json({ message: 'Event deleted' });
 }

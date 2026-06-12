@@ -23,7 +23,7 @@ export default async function AdminAnalyticsPage() {
   ]);
 
   const total = allEvents.length;
-  const accepted = allEvents.filter((e) => ['APPROVED', 'PUBLISHED', 'COMPLETED'].includes(e.status)).length;
+  const accepted = allEvents.filter((e) => ['ACCEPTED', 'COMPLETED'].includes(e.status)).length;
   const rejected = allEvents.filter((e) => e.status === 'REJECTED').length;
   const completed = allEvents.filter((e) => e.status === 'COMPLETED').length;
   const acceptanceRatio = total > 0 ? Math.round((accepted / total) * 100) : 0;

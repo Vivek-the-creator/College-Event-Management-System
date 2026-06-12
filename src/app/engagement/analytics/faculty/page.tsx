@@ -24,7 +24,7 @@ export default async function FacultyAnalyticsPage() {
     PointsService.getUserTotalPoints(facultyId),
   ]);
 
-  const approved = proposals.filter((p) => ['APPROVED', 'PUBLISHED', 'COMPLETED'].includes(p.status)).length;
+  const approved = proposals.filter((p) => ['ACCEPTED', 'COMPLETED'].includes(p.status)).length;
   const completed = proposals.filter((p) => p.status === 'COMPLETED').length;
   const successRate = proposals.length > 0 ? Math.round((completed / proposals.length) * 100) : 0;
 

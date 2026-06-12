@@ -1,12 +1,18 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 export interface SessionUser {
   id: string;
   name: string;
   email: string;
   role: string;
+  rollNumber?: string | null;
+  year?: number | null;
+  section?: string | null;
+  employeeId?: string | null;
+  department?: string | null;
+  profileImage?: string | null;
 }
 
 export interface Session {
@@ -17,14 +23,21 @@ export function useSession() {
   const [data, setData] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetch('/api/auth/session')
+  const refetch = useCallback(async () => {
+    setLoading(true);
+    const value = await fetch('/api/auth/session')
       .then((res) => res.json())
-      .then((value) => setData(value.session ?? null))
       .finally(() => setLoading(false));
+    setData(value.session ?? null);
+    return value.session ?? null;
   }, []);
 
-  return { data, loading };
+  useEffect(() => {
+    refetch()
+      .finally(() => setLoading(false));
+  }, [refetch]);
+
+  return { data, loading, refetch };
 }
 
 export async function signIn(credentials: { email: string; password: string }) {

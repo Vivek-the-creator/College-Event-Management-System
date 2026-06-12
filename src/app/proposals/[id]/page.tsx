@@ -7,15 +7,14 @@ import { useSession } from '@/lib/auth-client';
 import { Proposal, CommentRecord, FundingContributionRecord } from '@/types';
 import {
   ThumbsUp, MessageSquare, DollarSign, ArrowLeft, MapPin, Users,
-  Calendar, Tag, Loader2, Send, CheckCircle,
+  Calendar, Tag, Loader2, Send, CheckCircle, Star,
 } from 'lucide-react';
 
 const statusConfig: Record<string, { label: string; className: string }> = {
-  DRAFT: { label: 'Draft', className: 'bg-slate-500/20 text-slate-400' },
-  SUBMITTED: { label: 'Submitted', className: 'bg-blue-500/20 text-blue-400' },
-  FACULTY_REVIEW: { label: 'In Review', className: 'bg-amber-500/20 text-amber-400' },
-  APPROVED: { label: 'Approved', className: 'bg-emerald-500/20 text-emerald-400' },
-  PUBLISHED: { label: 'Published', className: 'bg-cyan-500/20 text-cyan-400' },
+  PENDING_FACULTY_APPROVAL: { label: 'Faculty Review', className: 'bg-amber-500/20 text-amber-400' },
+  PENDING_ADMIN_APPROVAL: { label: 'Admin Review', className: 'bg-blue-500/20 text-blue-400' },
+  ACCEPTED: { label: 'Accepted', className: 'bg-emerald-500/20 text-emerald-400' },
+  REJECTED: { label: 'Rejected', className: 'bg-red-500/20 text-red-400' },
   COMPLETED: { label: 'Completed', className: 'bg-slate-400/20 text-slate-300' },
 };
 
@@ -32,6 +31,24 @@ export default function ProposalDetailsPage() {
   const [voting, setVoting] = useState(false);
   const [commenting, setCommenting] = useState(false);
   const [contributing, setContributing] = useState(false);
+  const [mentorRating, setMentorRating] = useState(0);
+  const [submittingRating, setSubmittingRating] = useState(false);
+  const [ratingDone, setRatingDone] = useState(false);
+
+  async function handleMentorRating() {
+    if (!mentorRating) return;
+    setSubmittingRating(true);
+    const res = await fetch(`/api/faculty/events/${proposal?.id}/rate`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mentorRating }),
+    });
+    setSubmittingRating(false);
+    if (!res.ok) { const d = await res.json(); toast.error(d.message || 'Failed'); return; }
+    const { eventRating } = await res.json();
+    toast.success(`Rating submitted! Final event rating: ${eventRating}/10`);
+    setRatingDone(true);
+  }
 
   useEffect(() => {
     if (!params.id) return;
@@ -105,7 +122,7 @@ export default function ProposalDetailsPage() {
     );
   }
 
-  const status = statusConfig[proposal.status] ?? statusConfig.DRAFT;
+  const status = statusConfig[proposal.status] ?? statusConfig.PENDING_FACULTY_APPROVAL;
 
   return (
     <div className="animate-fade-in p-8">
@@ -218,8 +235,39 @@ export default function ProposalDetailsPage() {
           </div>
         </div>
 
-        {/* Right — Funding */}
+        {/* Right — Funding + Faculty Rating */}
         <div className="space-y-6">
+
+          {/* Faculty mentor rating panel */}
+          {session?.user.role === 'FACULTY' && proposal.status === 'COMPLETED' && proposal.mentorFacultyId === session.user.id && (
+            <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-6">
+              <div className="mb-3 flex items-center gap-2">
+                <Star className="h-4 w-4 text-amber-400" />
+                <h2 className="font-semibold text-white">Rate This Event</h2>
+              </div>
+              {ratingDone || proposal.mentorRating ? (
+                <p className="text-sm text-emerald-400">You have already rated this event ✓</p>
+              ) : (
+                <>
+                  <p className="mb-3 text-xs text-slate-400">Select a rating from 1–10 for this event you mentored.</p>
+                  <div className="mb-4 flex gap-1">
+                    {Array.from({ length: 10 }, (_, i) => i + 1).map((v) => (
+                      <button key={v} onClick={() => setMentorRating(v)}
+                        className={`rounded p-1 text-sm transition-colors ${ mentorRating >= v ? 'text-amber-400' : 'text-slate-600 hover:text-amber-300'}`}>
+                        <Star className="h-4 w-4 fill-current" />
+                      </button>
+                    ))}
+                  </div>
+                  {mentorRating > 0 && <p className="mb-3 text-xs text-amber-400">{mentorRating}/10 selected</p>}
+                  <button onClick={handleMentorRating} disabled={!mentorRating || submittingRating}
+                    className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">
+                    {submittingRating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle className="h-3.5 w-3.5" />}
+                    Submit Rating
+                  </button>
+                </>
+              )}
+            </div>
+          )}
           <div className="rounded-2xl border border-white/5 bg-slate-900/50 p-6">
             <div className="mb-4 flex items-center gap-2">
               <DollarSign className="h-4 w-4 text-emerald-400" />

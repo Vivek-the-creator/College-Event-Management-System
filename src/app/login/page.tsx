@@ -73,7 +73,21 @@ export default function LoginPage() {
   const [signupError, setSignupError] = useState('');
   const [signupSuccess, setSignupSuccess] = useState('');
   const [signupLoading, setSignupLoading] = useState(false);
+  const [signupDepartment, setSignupDepartment] = useState('');
+  const [signupEmployeeId, setSignupEmployeeId] = useState('');
   const [showSignupPassword, setShowSignupPassword] = useState(false);
+  const DEPARTMENTS = [
+    'Computer Science and Engineering',
+    'Information Technology',
+    'Electronics and Communication Engineering',
+    'Electrical and Electronics Engineering',
+    'Mechanical Engineering',
+    'Civil Engineering',
+    'Artificial Intelligence and Data Science',
+    'Cyber Security',
+    'MBA',
+    'MCA',
+  ];
 
   const activeRole = mode === 'login' ? roles.find((r) => r.value === loginRole)! : roles.find((r) => r.value === signupRole)!;
 
@@ -98,10 +112,20 @@ export default function LoginPage() {
     if (signupPassword !== confirmPassword) { setSignupError('Passwords do not match'); return; }
     if (signupPassword.length < 8) { setSignupError('Password must be at least 8 characters'); return; }
     setSignupLoading(true);
+    const body: Record<string, unknown> = {
+      name, email: signupEmail, password: signupPassword, role: signupRole,
+      department: signupDepartment,
+    };
+    if (signupRole === 'STUDENT') {
+      body.rollNumber = '';
+    }
+    if (signupRole === 'FACULTY') {
+      body.employeeId = signupEmployeeId;
+    }
     const res = await fetch('/api/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email: signupEmail, password: signupPassword, role: signupRole }),
+      body: JSON.stringify(body),
     });
     setSignupLoading(false);
     if (res.status === 409) { setSignupError('An account with this email already exists'); return; }
@@ -118,7 +142,12 @@ export default function LoginPage() {
     setSignupSuccess('');
   }
 
-  return (
+  function handleSignupRedirect() {
+    if (signupRole === 'STUDENT') router.push('/signup/student');
+    if (signupRole === 'FACULTY') router.push('/signup/faculty');
+  }
+
+return (
     <div className="relative flex min-h-screen overflow-hidden bg-slate-950">
       {/* Animated background */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -186,32 +215,10 @@ export default function LoginPage() {
 
           {/* Card */}
           <div className="overflow-hidden rounded-2xl border border-white/10 bg-slate-900/80 shadow-2xl backdrop-blur-xl">
-            {/* Tab switcher */}
-            <div className="flex border-b border-white/5">
-              {(['login', 'signup'] as const).map((m) => (
-                <button
-                  key={m}
-                  type="button"
-                  onClick={() => switchMode(m)}
-                  className={`flex-1 py-4 text-sm font-medium transition-all ${
-                    mode === m
-                      ? 'text-white border-b-2 ' + activeRole.activeBorder
-                      : 'text-slate-500 hover:text-slate-300'
-                  }`}
-                >
-                  {m === 'login' ? 'Sign In' : 'Create Account'}
-                </button>
-              ))}
-            </div>
-
             <div className="p-7">
               <div className="mb-6">
-                <h2 className="text-xl font-semibold text-white">
-                  {mode === 'login' ? 'Welcome back' : 'Join CampusConnect'}
-                </h2>
-                <p className="mt-1 text-sm text-slate-400">
-                  {mode === 'login' ? 'Sign in to your account to continue' : 'Create your account to get started'}
-                </p>
+                <h2 className="text-xl font-semibold text-white">Welcome back</h2>
+                <p className="mt-1 text-sm text-slate-400">Sign in to your account to continue</p>
               </div>
 
               {/* Role selector */}
@@ -219,14 +226,12 @@ export default function LoginPage() {
                 <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Select your role</p>
                 <div className="grid grid-cols-3 gap-2">
                   {roles.map((r) => {
-                    const currentRole = mode === 'login' ? loginRole : signupRole;
-                    const setRole = mode === 'login' ? setLoginRole : setSignupRole;
-                    const isActive = currentRole === r.value;
+                    const isActive = loginRole === r.value;
                     return (
                       <button
                         key={r.value}
                         type="button"
-                        onClick={() => setRole(r.value)}
+                        onClick={() => setLoginRole(r.value)}
                         className={`group relative flex flex-col items-center gap-2 rounded-xl border p-3 transition-all duration-200 ${
                           isActive
                             ? `border-opacity-80 bg-gradient-to-b ${r.activeGradient} ${r.activeBorder}`
@@ -253,127 +258,57 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              {mode === 'login' ? (
-                <form onSubmit={handleLogin} className="space-y-4">
-                  <div className="space-y-1">
-                    <label className="text-xs font-medium text-slate-400">Email address</label>
+              <form onSubmit={handleLogin} className="space-y-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-slate-400">Email address</label>
+                  <input
+                    type="email"
+                    value={loginEmail}
+                    onChange={(e) => setLoginEmail(e.target.value)}
+                    placeholder="you@university.edu"
+                    required
+                    className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder-slate-500 outline-none transition-all focus:border-white/25 focus:bg-white/8 focus:ring-2 focus:ring-white/5"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-slate-400">Password</label>
+                  <div className="relative">
                     <input
-                      type="email"
-                      value={loginEmail}
-                      onChange={(e) => setLoginEmail(e.target.value)}
-                      placeholder="you@university.edu"
+                      type={showLoginPassword ? 'text' : 'password'}
+                      value={loginPassword}
+                      onChange={(e) => setLoginPassword(e.target.value)}
+                      placeholder="••••••••"
                       required
-                      className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder-slate-500 outline-none transition-all focus:border-white/25 focus:bg-white/8 focus:ring-2 focus:ring-white/5"
+                      className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 pr-11 text-sm text-white placeholder-slate-500 outline-none transition-all focus:border-white/25 focus:bg-white/8 focus:ring-2 focus:ring-white/5"
                     />
+                    <button type="button" onClick={() => setShowLoginPassword(!showLoginPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300">
+                      {showLoginPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-medium text-slate-400">Password</label>
-                    <div className="relative">
-                      <input
-                        type={showLoginPassword ? 'text' : 'password'}
-                        value={loginPassword}
-                        onChange={(e) => setLoginPassword(e.target.value)}
-                        placeholder="••••••••"
-                        required
-                        className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 pr-11 text-sm text-white placeholder-slate-500 outline-none transition-all focus:border-white/25 focus:bg-white/8 focus:ring-2 focus:ring-white/5"
-                      />
-                      <button type="button" onClick={() => setShowLoginPassword(!showLoginPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300">
-                        {showLoginPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </button>
-                    </div>
+                </div>
+                {loginError && (
+                  <div className="flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2">
+                    <div className="h-1.5 w-1.5 rounded-full bg-red-400" />
+                    <p className="text-xs text-red-400">{loginError}</p>
                   </div>
-                  {loginError && (
-                    <div className="flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2">
-                      <div className="h-1.5 w-1.5 rounded-full bg-red-400" />
-                      <p className="text-xs text-red-400">{loginError}</p>
-                    </div>
-                  )}
-                  <button
-                    type="submit"
-                    disabled={loginLoading}
-                    className={`mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r ${activeRole.gradient} px-4 py-2.5 text-sm font-semibold text-white shadow-lg transition-all hover:opacity-90 hover:shadow-xl active:scale-[0.98] disabled:opacity-60`}
-                  >
-                    {loginLoading ? <><Loader2 className="h-4 w-4 animate-spin" /> Signing in...</> : 'Sign In'}
-                  </button>
-                </form>
-              ) : (
-                <form onSubmit={handleSignup} className="space-y-4">
-                  <div className="space-y-1">
-                    <label className="text-xs font-medium text-slate-400">Full name</label>
-                    <input
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="Your full name"
-                      required
-                      className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder-slate-500 outline-none transition-all focus:border-white/25 focus:bg-white/8 focus:ring-2 focus:ring-white/5"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-medium text-slate-400">Email address</label>
-                    <input
-                      type="email"
-                      value={signupEmail}
-                      onChange={(e) => setSignupEmail(e.target.value)}
-                      placeholder="you@university.edu"
-                      required
-                      className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder-slate-500 outline-none transition-all focus:border-white/25 focus:bg-white/8 focus:ring-2 focus:ring-white/5"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-slate-400">Password</label>
-                      <div className="relative">
-                        <input
-                          type={showSignupPassword ? 'text' : 'password'}
-                          value={signupPassword}
-                          onChange={(e) => setSignupPassword(e.target.value)}
-                          placeholder="Min. 8 chars"
-                          minLength={8}
-                          required
-                          className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 pr-10 text-sm text-white placeholder-slate-500 outline-none transition-all focus:border-white/25 focus:bg-white/8"
-                        />
-                        <button type="button" onClick={() => setShowSignupPassword(!showSignupPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300">
-                          {showSignupPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                        </button>
-                      </div>
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-slate-400">Confirm</label>
-                      <input
-                        type="password"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        placeholder="Repeat password"
-                        minLength={8}
-                        required
-                        className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder-slate-500 outline-none transition-all focus:border-white/25 focus:bg-white/8"
-                      />
-                    </div>
-                  </div>
-                  {signupError && (
-                    <div className="flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2">
-                      <div className="h-1.5 w-1.5 rounded-full bg-red-400" />
-                      <p className="text-xs text-red-400">{signupError}</p>
-                    </div>
-                  )}
-                  {signupSuccess && (
-                    <div className="flex items-center gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-2">
-                      <div className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                      <p className="text-xs text-emerald-400">{signupSuccess}</p>
-                    </div>
-                  )}
-                  <button
-                    type="submit"
-                    disabled={signupLoading}
-                    className={`mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r ${activeRole.gradient} px-4 py-2.5 text-sm font-semibold text-white shadow-lg transition-all hover:opacity-90 hover:shadow-xl active:scale-[0.98] disabled:opacity-60`}
-                  >
-                    {signupLoading ? <><Loader2 className="h-4 w-4 animate-spin" /> Creating...</> : 'Create Account'}
-                  </button>
-                </form>
-              )}
+                )}
+                <button
+                  type="submit"
+                  disabled={loginLoading}
+                  className={`mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r ${activeRole.gradient} px-4 py-2.5 text-sm font-semibold text-white shadow-lg transition-all hover:opacity-90 hover:shadow-xl active:scale-[0.98] disabled:opacity-60`}
+                >
+                  {loginLoading ? <><Loader2 className="h-4 w-4 animate-spin" /> Signing in...</> : 'Sign In'}
+                </button>
+              </form>
             </div>
           </div>
 
+          <p className="mt-4 text-center text-sm text-slate-600">
+            Don&apos;t have an account?{' '}
+            <button type="button" onClick={() => router.push('/auth?mode=signup')} className="font-medium text-blue-600 hover:underline">
+              Create one
+            </button>
+          </p>
           <p className="mt-6 text-center text-xs text-slate-600">
             By continuing, you agree to our Terms of Service and Privacy Policy.
           </p>

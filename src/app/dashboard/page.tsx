@@ -1,9 +1,11 @@
 import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
+import Image from 'next/image';
 import {
   FileText, ThumbsUp, Ticket, Users, Clock, CheckCircle,
   DollarSign, TrendingUp, Star, Activity, ArrowUpRight, Zap,
+  Calendar, XCircle,
 } from 'lucide-react';
 
 function StatCard({
@@ -64,7 +66,7 @@ export default async function DashboardPage() {
       department,
     } = session.user;
 
-    const [proposalCount, voteCount, bookingCount, recentProposals] = await Promise.all([
+    const [proposalCount, voteCount, bookingCount, recentProposals, upcomingEvents] = await Promise.all([
       prisma.eventProposal.count({ where: { authorId: userId } }),
       prisma.vote.count({ where: { userId } }),
       prisma.booking.count({ where: { userId, status: 'CONFIRMED' } }),
@@ -74,14 +76,23 @@ export default async function DashboardPage() {
         take: 4,
         select: { id: true, title: true, status: true, _count: { select: { votes: true } } },
       }),
+      prisma.eventProposal.findMany({
+        where: {
+          authorId: { not: userId },
+          status: 'ACCEPTED',
+          startDate: { gt: new Date() },
+        },
+        orderBy: { startDate: 'asc' },
+        take: 4,
+        include: { author: { select: { name: true } }, _count: { select: { registrations: true } } },
+      }),
     ]);
 
     const statusColors: Record<string, string> = {
-      DRAFT: 'bg-slate-500/20 text-slate-400',
-      SUBMITTED: 'bg-blue-500/20 text-blue-400',
-      FACULTY_REVIEW: 'bg-amber-500/20 text-amber-400',
-      APPROVED: 'bg-emerald-500/20 text-emerald-400',
-      PUBLISHED: 'bg-cyan-500/20 text-cyan-400',
+      PENDING_FACULTY_APPROVAL: 'bg-slate-500/20 text-slate-400',
+      PENDING_ADMIN_APPROVAL: 'bg-blue-500/20 text-blue-400',
+      ACCEPTED: 'bg-emerald-500/20 text-emerald-400',
+      REJECTED: 'bg-red-500/20 text-red-400',
       COMPLETED: 'bg-slate-400/20 text-slate-300',
     };
 
@@ -121,37 +132,72 @@ export default async function DashboardPage() {
           <StatCard title="Tickets Booked" value={bookingCount} icon={Ticket} gradient="from-blue-600 to-indigo-600" subtitle="Confirmed bookings" />
         </div>
 
-        {/* Recent proposals */}
-        <div className="role-card rounded-2xl p-6 transition-all duration-200">
-          <SectionHeader title="Your Proposals" subtitle="Recent event proposals you've submitted" />
-          {recentProposals.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-500/10">
-                <FileText className="h-6 w-6 text-blue-400" />
+        <div className="grid gap-6 xl:grid-cols-2">
+          <div className="role-card rounded-2xl p-6 transition-all duration-200">
+            <SectionHeader title="Upcoming Events" subtitle="Accepted events proposed by others" />
+            {upcomingEvents.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-cyan-500/10">
+                  <Calendar className="h-6 w-6 text-cyan-400" />
+                </div>
+                <p className="font-medium text-slate-300">No upcoming events</p>
+                <p className="mt-1 text-sm text-slate-500">Accepted campus events will appear here.</p>
               </div>
-              <p className="font-medium text-slate-300">No proposals yet</p>
-              <p className="mt-1 text-sm text-slate-500">Head to Proposals to create your first event idea.</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {recentProposals.map((p) => (
-                <RowCard key={p.id}>
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10">
-                      <FileText className="h-4 w-4 text-blue-400" />
+            ) : (
+              <div className="space-y-3">
+                {upcomingEvents.map((event) => (
+                  <RowCard key={event.id}>
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-500/10">
+                        <Calendar className="h-4 w-4 text-cyan-400" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-slate-200">{event.title}</p>
+                        <p className="text-xs text-slate-500">
+                          by {event.author.name} · {new Date(event.startDate).toLocaleDateString()}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-medium text-slate-200">{p.title}</p>
-                      <p className="text-xs text-slate-500">{p._count.votes} votes</p>
+                    <span className="rounded-full bg-emerald-500/20 px-2.5 py-0.5 text-xs font-medium text-emerald-400">
+                      {event._count.registrations} registered
+                    </span>
+                  </RowCard>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="role-card rounded-2xl p-6 transition-all duration-200">
+            <SectionHeader title="My Proposals" subtitle="Recent event proposals you've submitted" />
+            {recentProposals.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-500/10">
+                  <FileText className="h-6 w-6 text-blue-400" />
+                </div>
+                <p className="font-medium text-slate-300">No proposals yet</p>
+                <p className="mt-1 text-sm text-slate-500">Head to Proposals to create your first event idea.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {recentProposals.map((p) => (
+                  <RowCard key={p.id}>
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10">
+                        <FileText className="h-4 w-4 text-blue-400" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-slate-200">{p.title}</p>
+                        <p className="text-xs text-slate-500">{p._count.votes} votes</p>
+                      </div>
                     </div>
-                  </div>
-                  <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColors[p.status] ?? 'bg-slate-500/20 text-slate-400'}`}>
-                    {p.status.replace('_', ' ')}
-                  </span>
-                </RowCard>
-              ))}
-            </div>
-          )}
+                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColors[p.status] ?? 'bg-slate-500/20 text-slate-400'}`}>
+                      {p.status.replaceAll('_', ' ')}
+                    </span>
+                  </RowCard>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -162,11 +208,11 @@ export default async function DashboardPage() {
     const { employeeId, department } = session.user;
 
     const [pending, approved, completed, recentPending] = await Promise.all([
-      prisma.eventProposal.count({ where: { status: 'FACULTY_REVIEW' } }),
-      prisma.eventProposal.count({ where: { status: { in: ['APPROVED', 'PUBLISHED'] } } }),
+      prisma.eventProposal.count({ where: { mentorFacultyId: userId, status: 'PENDING_FACULTY_APPROVAL' } }),
+      prisma.eventProposal.count({ where: { status: 'ACCEPTED' } }),
       prisma.eventProposal.count({ where: { status: 'COMPLETED' } }),
       prisma.eventProposal.findMany({
-        where: { status: 'FACULTY_REVIEW' },
+        where: { mentorFacultyId: userId, status: 'PENDING_FACULTY_APPROVAL' },
         orderBy: { createdAt: 'desc' },
         take: 4,
         include: { author: { select: { name: true } }, _count: { select: { votes: true } } },
@@ -239,20 +285,23 @@ export default async function DashboardPage() {
     );
   }
 
-  // ── Admin ─────────────────────────────────────────────────────────
-  const [userCount, pendingCount, fundingAgg, ticketsSold, recentUsers] = await Promise.all([
+// ── Admin ─────────────────────────────────────────────────────────
+  const [userCount, studentCount, facultyCount, eventCount, pendingCount, acceptedCount, rejectedCount, completedCount, acceptedUsers] = await Promise.all([
     prisma.user.count(),
-    prisma.eventProposal.count({ where: { status: 'SUBMITTED' } }),
-    prisma.fundingContribution.aggregate({ _sum: { amount: true } }),
-    prisma.booking.count({ where: { status: 'CONFIRMED' } }),
+    prisma.user.count({ where: { role: 'STUDENT' } }),
+    prisma.user.count({ where: { role: 'FACULTY' } }),
+    prisma.eventProposal.count(),
+    prisma.eventProposal.count({ where: { status: 'PENDING_ADMIN_APPROVAL' } }),
+    prisma.eventProposal.count({ where: { status: 'ACCEPTED' } }),
+    prisma.eventProposal.count({ where: { status: 'REJECTED' } }),
+    prisma.eventProposal.count({ where: { status: 'COMPLETED' } }),
     prisma.user.findMany({
+      where: { emailVerified: true },
       orderBy: { createdAt: 'desc' },
       take: 5,
       select: { id: true, name: true, email: true, role: true, createdAt: true },
     }),
   ]);
-
-  const totalFunding = fundingAgg._sum.amount ?? 0;
 
   const roleColors: Record<string, string> = {
     STUDENT: 'bg-blue-500/20 text-blue-400',
@@ -279,15 +328,22 @@ export default async function DashboardPage() {
 
       <div className="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard title="Total Users" value={userCount} icon={Users} gradient="from-violet-500 to-indigo-500" subtitle="Registered accounts" />
-        <StatCard title="Pending Approvals" value={pendingCount} icon={Clock} gradient="from-amber-500 to-orange-500" subtitle="Awaiting action" />
-        <StatCard title="Total Funding" value={`$${totalFunding.toLocaleString()}`} icon={DollarSign} gradient="from-emerald-500 to-teal-500" subtitle="Contributions tracked" />
-        <StatCard title="Tickets Sold" value={ticketsSold} icon={TrendingUp} gradient="from-pink-500 to-rose-500" subtitle="Confirmed bookings" />
+        <StatCard title="Students" value={studentCount} icon={Users} gradient="from-blue-500 to-cyan-500" subtitle="Active students" />
+        <StatCard title="Faculty" value={facultyCount} icon={Users} gradient="from-emerald-500 to-teal-500" subtitle="Active faculty" />
+        <StatCard title="Total Events" value={eventCount} icon={FileText} gradient="from-amber-500 to-orange-500" subtitle="All proposals" />
+      </div>
+
+      <div className="mb-8 grid gap-4 sm:grid-cols-4">
+        <StatCard title="Pending Events" value={pendingCount} icon={Clock} gradient="from-amber-500 to-orange-500" />
+        <StatCard title="Accepted Events" value={acceptedCount} icon={CheckCircle} gradient="from-emerald-500 to-teal-500" />
+        <StatCard title="Rejected Events" value={rejectedCount} icon={XCircle} gradient="from-red-500 to-rose-500" />
+        <StatCard title="Completed Events" value={completedCount} icon={Calendar} gradient="from-cyan-500 to-blue-500" />
       </div>
 
       <div className="role-card rounded-2xl p-6 transition-all duration-200">
-        <SectionHeader title="Recent Users" subtitle="Latest registrations on the platform" />
+        <SectionHeader title="Accepted Users" subtitle="Users with verified accounts" />
         <div className="space-y-3">
-          {recentUsers.map((u) => (
+          {acceptedUsers.map((u) => (
             <RowCard key={u.id}>
               <div className="flex items-center gap-3">
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-indigo-500 text-xs font-bold text-white">
