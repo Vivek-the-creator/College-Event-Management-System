@@ -20,11 +20,13 @@ const roleColors: Record<string, string> = {
 
 export default function CalendarPage() {
   const router = useRouter();
-  const { data: session } = useSession();
+  const { data: session, loading: sessionLoading } = useSession();
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (sessionLoading) return;
+
     if (!session) {
       router.push('/login');
       return;
@@ -48,9 +50,9 @@ export default function CalendarPage() {
         toast.error('Failed to load calendar');
         setLoading(false);
       });
-  }, [session, router]);
+  }, [session, sessionLoading, router]);
 
-  if (loading) {
+  if (loading || sessionLoading) {
     return (
       <div className="flex h-full items-center justify-center p-8">
         <Loader2 className="h-8 w-8 animate-spin text-blue-400" />

@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, FileText, Calendar, BarChart3, LogOut, Sun, Moon,
   Zap, ChevronRight, Bell, Settings, Users, Shield, GraduationCap, BookOpen,
-  ThumbsUp, Star, Plus, User, Clock,
+  ThumbsUp, Star, Plus, User, Clock, CalendarDays,
 } from 'lucide-react';
 import { useSession, signOut } from '@/lib/auth-client';
 import { useTheme } from '@/components/providers';
@@ -15,6 +15,7 @@ const navByRole = {
   STUDENT: [
     { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/proposals', label: 'Proposals', icon: FileText },
+    { href: '/upcoming-events', label: 'Upcoming Events', icon: CalendarDays },
     { href: '/calendar', label: 'Calendar', icon: Calendar },
     { href: '/analytics', label: 'Analytics', icon: BarChart3 },
     { href: '/profile', label: 'Profile', icon: User },
@@ -23,6 +24,7 @@ const navByRole = {
   FACULTY: [
     { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/proposals', label: 'Proposals', icon: FileText },
+    { href: '/upcoming-events', label: 'Upcoming Events', icon: CalendarDays },
     { href: '/faculty/pending-events', label: 'Review Events', icon: Clock },
     { href: '/calendar', label: 'Calendar', icon: Calendar },
     { href: '/analytics', label: 'Analytics', icon: BarChart3 },
@@ -32,6 +34,7 @@ const navByRole = {
   ADMIN: [
     { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/proposals', label: 'Proposals', icon: FileText },
+    { href: '/upcoming-events', label: 'Upcoming Events', icon: CalendarDays },
     { href: '/admin/pending-events', label: 'Pending Events', icon: Clock },
     { href: '/calendar', label: 'Calendar', icon: Calendar },
     { href: '/analytics', label: 'Analytics', icon: BarChart3 },
