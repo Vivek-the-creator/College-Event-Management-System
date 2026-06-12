@@ -55,8 +55,15 @@ export default async function DashboardPage() {
 
   const { role, id: userId, name } = session.user;
 
-  // ── Student ──────────────────────────────────────────────────────
+// ── Student ──────────────────────────────────────────────────────
   if (role === 'STUDENT') {
+    const {
+      rollNumber,
+      year,
+      section,
+      department,
+    } = session.user;
+
     const [proposalCount, voteCount, bookingCount, recentProposals] = await Promise.all([
       prisma.eventProposal.count({ where: { authorId: userId } }),
       prisma.vote.count({ where: { userId } }),
@@ -78,6 +85,9 @@ export default async function DashboardPage() {
       COMPLETED: 'bg-slate-400/20 text-slate-300',
     };
 
+    const yearLabels = ['I', 'II', 'III', 'IV'];
+    const yearDisplay = year ? yearLabels[year - 1] + ' Year' : '';
+
     return (
       <div className="animate-fade-in p-8">
         {/* Header */}
@@ -88,9 +98,15 @@ export default async function DashboardPage() {
               Student Portal
             </div>
             <h1 className="mt-1 text-2xl font-bold text-white">
-              Welcome back, {name?.split(' ')[0]} 👋
+              Welcome, {name} {'\u2019'}
             </h1>
-            <p className="mt-1 text-sm text-slate-400">Here's what's happening with your events today.</p>
+            <div className="mt-1 space-x-4 text-sm text-slate-400">
+              <span>Roll No: {rollNumber}</span>
+              <span>Department: {department}</span>
+              <span>Year: {yearDisplay}</span>
+              <span>Section: {section}</span>
+            </div>
+            <p className="mt-1 text-sm text-slate-400">Here&apos;s what&apos;s happening with your events today.</p>
           </div>
           <div className="hidden items-center gap-2 rounded-xl border border-blue-500/20 bg-blue-500/10 px-4 py-2 md:flex">
             <div className="h-2 w-2 animate-pulse rounded-full bg-blue-400" />
@@ -141,8 +157,10 @@ export default async function DashboardPage() {
     );
   }
 
-  // ── Faculty ───────────────────────────────────────────────────────
+// ── Faculty ───────────────────────────────────────────────────────
   if (role === 'FACULTY') {
+    const { employeeId, department } = session.user;
+
     const [pending, approved, completed, recentPending] = await Promise.all([
       prisma.eventProposal.count({ where: { status: 'FACULTY_REVIEW' } }),
       prisma.eventProposal.count({ where: { status: { in: ['APPROVED', 'PUBLISHED'] } } }),
@@ -164,8 +182,12 @@ export default async function DashboardPage() {
               Faculty Portal
             </div>
             <h1 className="mt-1 text-2xl font-bold text-white">
-              Good to see you, {name?.split(' ')[0]}
+              Welcome, {name}
             </h1>
+            <div className="mt-1 space-x-4 text-sm text-slate-400">
+              <span>Employee ID: {employeeId}</span>
+              <span>Department: {department}</span>
+            </div>
             <p className="mt-1 text-sm text-slate-400">Review and manage student event proposals.</p>
           </div>
           {pending > 0 && (

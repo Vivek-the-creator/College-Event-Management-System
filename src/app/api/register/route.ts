@@ -7,8 +7,11 @@ const registerSchema = z.object({
   name: z.string().min(2),
   email: z.string().email(),
   password: z.string().min(8),
-  role: z.enum(['STUDENT', 'FACULTY', 'ADMIN']).optional(),
+  role: z.enum(['STUDENT', 'FACULTY']),
   department: z.string().optional(),
+  rollNumber: z.string().optional(),
+  year: z.number().int().min(1).max(4).optional(),
+  section: z.string().optional(),
   employeeId: z.string().optional(),
 });
 
@@ -22,6 +25,26 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: 'User already exists' }, { status: 409 });
     }
 
+    if (parsed.role === 'STUDENT') {
+      if (!parsed.rollNumber || !parsed.department || !parsed.year || !parsed.section) {
+        return NextResponse.json({ message: 'Roll Number, Department, Year, and Section are required for students' }, { status: 400 });
+      }
+      const existingRoll = await prisma.user.findUnique({ where: { rollNumber: parsed.rollNumber } });
+      if (existingRoll) {
+        return NextResponse.json({ message: 'Roll Number already registered' }, { status: 409 });
+      }
+    }
+
+    if (parsed.role === 'FACULTY') {
+      if (!parsed.employeeId || !parsed.department) {
+        return NextResponse.json({ message: 'Employee ID and Department are required for faculty' }, { status: 400 });
+      }
+      const existingEmp = await prisma.user.findUnique({ where: { employeeId: parsed.employeeId } });
+      if (existingEmp) {
+        return NextResponse.json({ message: 'Employee ID already registered' }, { status: 409 });
+      }
+    }
+
     const passwordHash = await hash(parsed.password, 10);
 
     const user = await prisma.user.create({
@@ -29,8 +52,13 @@ export async function POST(request: Request) {
         name: parsed.name,
         email: parsed.email,
         passwordHash,
-        role: parsed.role ?? 'STUDENT',
+        role: parsed.role,
         emailVerified: true,
+        department: parsed.department,
+        rollNumber: parsed.rollNumber,
+        year: parsed.year,
+        section: parsed.section,
+        employeeId: parsed.employeeId,
       },
       select: { id: true, name: true, email: true, role: true },
     });

@@ -8,6 +8,9 @@ export interface UserRecord {
   passwordHash: string;
   department?: string;
   employeeId?: string;
+  rollNumber?: string;
+  year?: number;
+  section?: string;
   emailVerified?: boolean;
   verificationToken?: string | null;
 }

@@ -7,6 +7,11 @@ export interface SessionUser {
   name: string;
   email: string;
   role: string;
+  rollNumber?: string | null;
+  year?: number | null;
+  section?: string | null;
+  employeeId?: string | null;
+  department?: string | null;
 }
 
 export interface Session {
@@ -16,14 +21,30 @@ export interface Session {
 const SESSION_COOKIE = 'campus_session';
 
 export async function signIn(credentials: { email: string; password: string }): Promise<Session | null> {
-  const user = await prisma.user.findUnique({ where: { email: credentials.email } });
+  const user = await prisma.user.findUnique({
+    where: { email: credentials.email },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      passwordHash: true,
+      rollNumber: true,
+      year: true,
+      section: true,
+      employeeId: true,
+      department: true,
+    },
+  });
   if (!user) return null;
 
   const valid = await compare(credentials.password, user.passwordHash);
   if (!valid) return null;
 
+  const { passwordHash: _, ...sessionUser } = user;
+
   const session: Session = {
-    user: { id: user.id, name: user.name, email: user.email, role: user.role },
+    user: sessionUser,
   };
 
   const cookieStore = await cookies();
